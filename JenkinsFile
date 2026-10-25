@@ -16,10 +16,10 @@ pipeline {
 
         stage('Setup Virtual Environment') {
             steps {
-                // Windows 'bat' command block (adjust to 'sh' if running on a Linux agent)
-                bat '''
-                    python -m venv venv
-                    call venv\\Scripts\\activate
+                // Linux shell block for virtual environment setup
+                sh '''
+                    python3 -m venv venv
+                    . venv/bin/activate
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
                 '''
@@ -46,8 +46,8 @@ pipeline {
                     echo "Executing Pytest with marker: ${marker}"
                     echo "=========================================="
 
-                    // Activate virtual environment and run pytest with HTML reporting
-                    bat "call venv\\Scripts\\activate && pytest -m ${marker} --html=report.html --self-contained-html"
+                    // Activate virtual environment and run pytest with HTML reporting on Linux
+                    sh ". venv/bin/activate && pytest -m ${marker} --html=report.html --self-contained-html"
                 }
             }
         }
