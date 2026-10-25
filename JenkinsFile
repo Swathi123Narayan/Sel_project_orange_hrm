@@ -1,9 +1,5 @@
 pipeline {
-    //agent {
-        //docker {
-         //   image 'python:3.11-slim'
-       // }
-   // }
+    agent any
 
     parameters {
         choice(name: 'TEST_SUITE', choices: ['sanity', 'functional', 'regression'], description: 'Select test suite to run')
