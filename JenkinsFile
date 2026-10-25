@@ -1,7 +1,10 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.11-slim'
+        }
+    }
 
-    // Optional: Add a parameter so you can run any suite manually from a single job
     parameters {
         choice(name: 'TEST_SUITE', choices: ['sanity', 'functional', 'regression'], description: 'Select test suite to run')
     }
@@ -9,17 +12,14 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                // Pulls code from your SCM (GitHub, GitLab, etc.)
                 checkout scm
             }
         }
 
         stage('Setup Virtual Environment') {
             steps {
-                // Linux shell block for virtual environment setup
                 sh '''
-                    # Replace with the exact absolute path to python3 on your system if needed
-                    /usr/bin/python3 -m venv venv
+                    python3 -m venv venv
                     . venv/bin/activate
                     python -m pip install --upgrade pip
                     pip install -r requirements.txt
@@ -32,7 +32,6 @@ pipeline {
                 script {
                     def marker = ""
 
-                    // Check Jenkins Job Name or fallback to the manual parameter selection
                     if (env.JOB_NAME.contains("Orange_sanity") || params.TEST_SUITE == "sanity") {
                         marker = "sanity"
                     } else if (env.JOB_NAME.contains("orange_funcational") || params.TEST_SUITE == "functional") {
@@ -40,14 +39,10 @@ pipeline {
                     } else if (env.JOB_NAME.contains("orange_regression") || params.TEST_SUITE == "regression") {
                         marker = "regression"
                     } else {
-                        marker = "smoke" // Default fallback marker
+                        marker = "smoke"
                     }
 
-                    echo "=========================================="
                     echo "Executing Pytest with marker: ${marker}"
-                    echo "=========================================="
-
-                    // Activate virtual environment and run pytest with HTML reporting on Linux
                     sh ". venv/bin/activate && pytest -m ${marker} --html=report.html --self-contained-html"
                 }
             }
@@ -56,14 +51,7 @@ pipeline {
 
     post {
         always {
-            // Save the HTML report as a Jenkins build artifact so you can download and view it
             archiveArtifacts artifacts: 'report.html', allowEmptyArchive: true
-        }
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed. Check test reports for details."
         }
     }
 }
