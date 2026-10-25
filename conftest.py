@@ -5,15 +5,24 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 import pytest
 from config.config import TestData
 from pages.login_page import LoginPage
+from selenium.webdriver.chrome.options import Options
 
 @pytest.fixture(params=['chrome'],scope='class')
 def init_driver(request):
     # Pytest uses request.param to pass a single parameter value from the params list. Using request.params will raise an AttributeError.
     if request.param=='chrome':
-        service = ChromeService(ChromeDriverManager().install())
-        web_driver = webdriver.Chrome(service=service)
+        # service = ChromeService(ChromeDriverManager().install())
+        # web_driver = webdriver.Chrome(service=service)
+        options = Options()
+        options.add_argument("--headless=new")  # Run headlessly for CI/CD
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-gpu")
+        driver = webdriver.Chrome(options=options)
+        
     # elif request.param=='firefox':
         # web_driver = webdriver.Firefox(executable_path=GeckoDriverManager.install())
+    
     web_driver.maximize_window()
     web_driver.implicitly_wait(10)
     web_driver.get(TestData.BASE_URL)
