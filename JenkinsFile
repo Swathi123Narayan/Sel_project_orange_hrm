@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    // Optional: Add a parameter so you can run any suite manually from a single job
+    parameters {
+        choice(name: 'TEST_SUITE', choices: ['sanity', 'functional', 'regression'], description: 'Select test suite to run')
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                // Pulls code from your SCM (GitHub, GitLab, etc.)
+                checkout scm
+            }
+        }
+
+        stage('Setup Virtual Environment') {
+            steps {
+                // Windows 'bat' command block (adjust to 'sh' if running on a Linux agent)
+                bat '''
+                    python -m venv venv
+                    call venv\\Scripts\\activate
+                    python -m pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Run Pytest Suite') {
+            steps {
+                script {
+                    def marker = ""
+
+                    // Check Jenkins Job Name or fallback to the manual parameter selection
+                    if (env.JOB_NAME.contains("Orange_sanity") || params.TEST_SUITE == "sanity") {
+                        marker = "sanity"
+                    } else if (env.JOB_NAME.contains("orange_funcational") || params.TEST_SUITE == "functional") {
+                        marker = "functional"
+                    } else if (env.JOB_NAME.contains("orange_regression") || params.TEST_SUITE == "regression") {
+                        marker = "regression"
+                    } else {
+                        marker = "smoke" // Default fallback marker
+                    }
+
+                    echo "=========================================="
+                    echo "Executing Pytest with marker: ${marker}"
+                    echo "=========================================="
+
+                    // Activate virtual environment and run pytest with HTML reporting
+                    bat "call venv\\Scripts\\activate && pytest -m ${marker} --html=report.html --self-contained-html"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Save the HTML report as a Jenkins build artifact so you can download and view it
+            archiveArtifacts artifacts: 'report.html', allowEmptyArchive: true
+        }
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check test reports for details."
+        }
+    }
+}
